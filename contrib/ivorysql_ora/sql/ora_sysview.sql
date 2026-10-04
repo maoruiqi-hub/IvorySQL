@@ -125,15 +125,20 @@ FROM SYS.V$SESSION
 WHERE SID = pg_catalog.pg_backend_pid()::NUMBER;
 
 -- Readable by PUBLIC so migration queries work for ordinary users.
+-- Check the grants as an ordinary role, not as the granting superuser.
+CREATE ROLE mystat_public_grant_probe;
+SET ROLE mystat_public_grant_probe;
 SELECT COUNT(*) = 1 AS mystat_public_select
-FROM information_schema.role_table_grants
+FROM information_schema.table_privileges
 WHERE table_schema = 'sys' AND table_name = 'v$mystat'
   AND grantee = 'PUBLIC' AND privilege_type = 'SELECT';
 
 SELECT COUNT(*) = 1 AS statname_public_select
-FROM information_schema.role_table_grants
+FROM information_schema.table_privileges
 WHERE table_schema = 'sys' AND table_name = 'v$statname'
   AND grantee = 'PUBLIC' AND privilege_type = 'SELECT';
+RESET ROLE;
+DROP ROLE mystat_public_grant_probe;
 
 -- The issue's PL/SQL pattern: unquoted STATISTIC# join with SELECT INTO.
 DECLARE
